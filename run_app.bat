@@ -10,32 +10,15 @@ cd /d "%~dp0"
 
 :: 1. ตรวจสอบไฟล์ .env
 if not exist .env (
-    echo [WARNING] ไม่พบไฟล์ .env
-    echo กำลังสร้างไฟล์ .env จากไฟล์ตัวอย่าง (.env.example)...
+    echo [INFO] ไม่พบไฟล์ .env กำลังสร้างไฟล์ค่ากำหนดใหม่...
     copy .env.example .env > nul
+    echo [SUCCESS] สร้างไฟล์ .env สำเร็จ! (ระบบทำงานโดยใช้ SQLite ภายในเครื่อง)
+    echo [INFO] รหัสผ่านควบคุมหน้าแอดมินเริ่มต้นคือ: your_secure_admin_password
+    echo (คุณสามารถแก้ไขรหัสผ่านได้ในไฟล์ .env)
     echo.
-    echo ----------------------------------------------------------
-    echo [คำแนะนำ] ระบบจะเปิดไฟล์ .env ด้วย Notepad
-    echo กรุณาใส่ "DATABASE_URL" และ "ADMIN_PASSWORD" ของคุณลงในไฟล์นั้น
-    echo เมื่อแก้ไขและบันทึก (Save) ไฟล์แล้ว ให้กลับมากดปุ่มใดๆ ในหน้าต่างนี้เพื่อทำงานต่อ
-    echo ----------------------------------------------------------
-    echo.
-    timeout /t 2 > nul
-    start notepad.exe .env
-    pause
 )
 
-:: 2. ตรวจสอบว่ามี DATABASE_URL ใน .env หรือยัง
-findstr /C:"username:password" .env > nul
-if %errorlevel% equ 0 (
-    echo [WARNING] คุณยังไม่ได้เปลี่ยน DATABASE_URL ในไฟล์ .env!
-    echo กรุณาแก้ไขไฟล์ .env ก่อน
-    start notepad.exe .env
-    pause
-    exit /b
-)
-
-:: 3. ติดตั้ง Dependencies หากยังไม่มี
+:: 2. ติดตั้ง Dependencies หากยังไม่มี
 if not exist node_modules (
     echo [INFO] ไม่พบโฟลเดอร์ node_modules กำลังติดตั้ง dependencies...
     echo (ขั้นตอนนี้อาจใช้เวลา 1-2 นาทีในการรันครั้งแรก)
@@ -47,7 +30,7 @@ if not exist node_modules (
     )
 )
 
-:: 4. สร้าง Prisma Client
+:: 3. สร้าง Prisma Client
 echo [INFO] กำลังสร้าง Prisma Client...
 call npx prisma generate
 if %errorlevel% neq 0 (
@@ -56,24 +39,23 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-:: 5. เชื่อมต่อและปรับปรุงโครงสร้างฐานข้อมูล (Database Push)
-echo [INFO] กำลังซิงค์โครงสร้างฐานข้อมูลไปที่ Supabase/PostgreSQL...
+:: 4. เชื่อมต่อและปรับปรุงโครงสร้างฐานข้อมูล SQLite
+echo [INFO] กำลังซิงค์โครงสร้างฐานข้อมูลในเครื่อง (SQLite)...
 call npx prisma db push --accept-data-loss
 if %errorlevel% neq 0 (
-    echo [ERROR] ไม่สามารถเชื่อมต่อฐานข้อมูลได้!
-    echo กรุณาตรวจสอบ DATABASE_URL ในไฟล์ .env ว่าถูกต้องและอินเทอร์เน็ตใช้งานได้
+    echo [ERROR] ไม่สามารถสร้างฐานข้อมูลในเครื่องได้!
     pause
     exit /b
 )
 
-:: 6. ใส่ข้อมูลห้องประชุมเริ่มต้น (Database Seed)
-echo [INFO] กำลังตรวจสอบและใส่ข้อมูลเริ่มต้น (Seed)...
+:: 5. ใส่ข้อมูลห้องประชุมเริ่มต้น (Database Seed)
+echo [INFO] กำลังตรวจสอบและใส่ข้อมูลห้องตั้งต้น (Seed)...
 call npx prisma db seed
 if %errorlevel% neq 0 (
     echo [WARNING] ไม่สามารถใส่ข้อมูลห้องเริ่มต้นได้ แต่ระบบอาจใช้งานได้ตามปกติ
 )
 
-:: 7. เริ่มต้นเซิร์ฟเวอร์ Next.js และเปิดเบราว์เซอร์
+:: 6. เริ่มต้นเซิร์ฟเวอร์ Next.js และเปิดเบราว์เซอร์
 echo [INFO] กำลังเริ่มต้นเซิร์ฟเวอร์ ROOMS888...
 start "ROOMS888 Server Process" /min cmd /c "npm run dev"
 
@@ -86,6 +68,7 @@ start http://localhost:3000
 echo.
 echo ==========================================================
 echo   ระบบ ROOMS888 ทำงานแล้วที่ http://localhost:3000
+echo   - ฐานข้อมูลถูกบันทึกไว้ในเครื่องเรียบร้อย (prisma/dev.db)
 echo   - หากคุณต้องการปิดระบบ ให้ปิดหน้าต่างคอนโซลนี้ได้เลย
 echo ==========================================================
 echo.
