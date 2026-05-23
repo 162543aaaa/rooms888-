@@ -1,0 +1,50 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum RoomStatus {
+  ACTIVE
+  MAINTENANCE
+}
+
+model Room {
+  id                 String     @id @default(uuid())
+  name               String     @unique
+  capacity           Int
+  status             RoomStatus @default(ACTIVE)
+  maxDurationMinutes Int        @default(240) // Default max 4 hours per room
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  bookings           Booking[]
+}
+
+model Booking {
+  id             String   @id @default(uuid())
+  roomId         String
+  room           Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userName       String
+  userDepartment String
+  userEmail      String?
+  notes          String?
+  startTime      DateTime // Stored in UTC
+  endTime        DateTime // Stored in UTC
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([roomId])
+  @@index([startTime, endTime])
+}
+
+model SystemSettings {
+  id                 String   @id @default("global")
+  maxDurationMinutes Int      @default(240) // Global fallback
+  operatingStartHour String   @default("08:00") // local-relative HH:MM, e.g. "08:00"
+  operatingEndHour   String   @default("20:00") // local-relative HH:MM, e.g. "20:00"
+  googleSheetUrl     String?
+  updatedAt          DateTime @updatedAt
+}

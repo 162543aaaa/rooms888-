@@ -1,49 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700;900&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --bg-warm: #FAF5EF;
+  --bg-retro-panel: #FFFDF9;
+  --text-dark: #2C1E1A;
+  --accent-orange: #E2725B;
+  --accent-peach: #F3A87C;
+  --accent-sand: #D4A373;
+  --accent-teal: #4A7C82;
+  --accent-neon-green: #39FF14;
+  --border-color: #2C1E1A;
+  --shadow-color: #2C1E1A;
+  --shadow-offset: 4px;
 }
 
 * {
   box-sizing: border-box;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+html, body {
+  min-height: 100vh;
+  background-color: var(--bg-warm);
+  color: var(--text-dark);
+  font-family: 'Kanit', sans-serif;
+  font-size: 16px;
+  overflow-x: hidden;
+  position: relative;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* CRT Scanline Overlay */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.04) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+  background-size: 100% 4px, 6px 100%;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* General Layout Elements */
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
+}
+
+/* Retro Digi-Log Box Container */
+.retro-box {
+  background-color: var(--bg-retro-panel);
+  border: 3px solid var(--border-color);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--shadow-color);
+  padding: 24px;
+  position: relative;
+  transition: all 0.1s ease;
+}
+
+.retro-box.interactive:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: calc(var(--shadow-offset) + 2px) calc(var(--shadow-offset) + 2px) 0px 0px var(--shadow-color);
+}
+
+.retro-box.interactive:active {
+  transform: translate(var(--shadow-offset), var(--shadow-offset));
+  box-shadow: 0px 0px 0px 0px var(--shadow-color);
+}
+
+/* Custom Buttons */
+.retro-btn {
+  font-family: inherit;
+  font-weight: 700;
+  text-transform: uppercase;
+  background-color: var(--accent-peach);
+  color: var(--text-dark);
+  border: 3px solid var(--border-color);
+  box-shadow: 4px 4px 0px 0px var(--shadow-color);
+  padding: 10px 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.1s ease;
+}
+
+.retro-btn:hover {
+  background-color: var(--accent-orange);
+  text-shadow: -1px -1px 0px #00FFFF, 1px 1px 0px #FF00FF;
+}
+
+.retro-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px 0px var(--shadow-color);
+}
+
+.retro-btn:disabled {
+  background-color: #E6E1DA;
+  color: #8C827A;
+  border-color: #8C827A;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  text-shadow: none;
+}
+
+.retro-btn-secondary {
+  background-color: var(--bg-warm);
+}
+.retro-btn-danger {
+  background-color: #FF5A5F;
+  color: white;
+}
+.retro-btn-danger:hover {
+  background-color: #E03E42;
+}
+
+/* Retro Inputs */
+.retro-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.retro-input-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.retro-input {
+  font-family: inherit;
+  background-color: #FFFDF9;
+  border: 2px solid var(--border-color);
+  padding: 10px 14px;
+  font-size: 1rem;
+  color: var(--text-dark);
+  outline: none;
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05);
+}
+
+.retro-input:focus {
+  border-color: var(--accent-orange);
+  box-shadow: 3px 3px 0px 0px var(--accent-peach), inset 2px 2px 0px rgba(0,0,0,0.05);
+}
+
+/* Retro Select */
+.retro-select {
+  font-family: inherit;
+  background-color: #FFFDF9;
+  border: 2px solid var(--border-color);
+  padding: 10px 14px;
+  font-size: 1rem;
+  color: var(--text-dark);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%232C1E1A' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 36px;
+}
+
+.retro-select:focus {
+  border-color: var(--accent-orange);
+  box-shadow: 3px 3px 0px 0px var(--accent-peach);
+}
+
+/* Badge Vibe */
+.retro-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 1px solid var(--border-color);
+  background-color: var(--accent-sand);
+  box-shadow: 1px 1px 0px 0px var(--shadow-color);
+}
+
+.retro-badge.active {
+  background-color: #39FF14;
+}
+
+.retro-badge.maintenance {
+  background-color: #FF5A5F;
+  color: white;
 }
