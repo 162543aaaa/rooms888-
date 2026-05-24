@@ -54,6 +54,11 @@ export default function AdminDashboard() {
   const [googleSheetUrl, setGoogleSheetUrl] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rooms' | 'bookings' | 'settings'>('dashboard');
 
+  // Form states for editing a booking's times
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [editStartTime, setEditStartTime] = useState<string>('');
+  const [editEndTime, setEditEndTime] = useState<string>('');
+
   // Load password from sessionStorage if exists
   useEffect(() => {
     const savedPassword = sessionStorage.getItem('admin_pass');
@@ -235,6 +240,62 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // แปลงวันเวลาเป็นรูปแบบที่ Input datetime-local รองรับ (YYYY-MM-DDTHH:MM ในเวลาท้องถิ่น)
+  const toLocalDatetimeString = (dateObjOrStr: any) => {
+    const d = new Date(dateObjOrStr);
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    return (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
+  };
+
+  // เริ่มแก้ไขคิวจอง
+  const startEditBooking = (booking: Booking) => {
+    setEditingBookingId(booking.id);
+    setEditStartTime(toLocalDatetimeString(booking.startTime));
+    setEditEndTime(toLocalDatetimeString(booking.endTime));
+  };
+
+  // บันทึกการแก้ไขวันเวลา
+  const handleUpdateBooking = async (bookingId: string) => {
+    if (!editStartTime || !editEndTime) {
+      alert('กรุณากรอกเวลาเริ่มต้นและเวลาสิ้นสุด');
+      return;
+    }
+
+    const start = new Date(editStartTime);
+    const end = new Date(editEndTime);
+
+    if (start >= end) {
+      alert('เวลาเริ่มต้นต้องอยู่ก่อนเวลาสิ้นสุด');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-password': password 
+        },
+        body: JSON.stringify({
+          startTime: start.toISOString(),
+          endTime: end.toISOString()
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        fetchAdminData(password);
+        setEditingBookingId(null);
+        alert('แก้ไขเวลาเข้าออกจริงเรียบร้อยแล้ว!');
+      } else {
+        alert(data.error || 'เกิดข้อผิดพลาดในการแก้ไขเวลา');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
     }
   };
 
@@ -959,13 +1020,38 @@ export default function AdminDashboard() {
                         <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>
                           👤 ผู้จอง: {booking.userName} ({booking.userDepartment})
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#8C827A', marginTop: '4px' }}>
-                          ⏰ <strong>เริ่ม:</strong> {startD.toLocaleDateString()} {String(startD.getHours()).padStart(2, '0')}:{String(startD.getMinutes()).padStart(2, '0')} น.
-                          &nbsp;&nbsp;|&nbsp;&nbsp;
-                          ⏰ <strong>สิ้นสุด:</strong> {endD.toLocaleDateString()} {String(endD.getHours()).padStart(2, '0')}:{String(endD.getMinutes()).padStart(2, '0')} น.
-                          &nbsp;&nbsp;|&nbsp;&nbsp;
-                          ⏳ <strong>ใช้เวลา:</strong> {durationStr}
-                        </div>
+                        {editingBookingId === booking.id ? (
+                          <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#2C1E1A' }}>⏰ เริ่มจริง:</span>
+                              <input 
+                                type="datetime-local" 
+                                value={editStartTime}
+                                onChange={(e) => setEditStartTime(e.target.value)}
+                                className="retro-input"
+                                style={{ padding: '4px 8px', fontSize: '0.85rem', border: '2px solid #2C1E1A', backgroundColor: '#FFFDF9', fontFamily: "'Kanit', sans-serif" }}
+                              />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#2C1E1A' }}>⏰ สิ้นสุดจริง:</span>
+                              <input 
+                                type="datetime-local" 
+                                value={editEndTime}
+                                onChange={(e) => setEditEndTime(e.target.value)}
+                                className="retro-input"
+                                style={{ padding: '4px 8px', fontSize: '0.85rem', border: '2px solid #2C1E1A', backgroundColor: '#FFFDF9', fontFamily: "'Kanit', sans-serif" }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '0.85rem', color: '#8C827A', marginTop: '4px' }}>
+                            ⏰ <strong>เริ่ม:</strong> {startD.toLocaleDateString()} {String(startD.getHours()).padStart(2, '0')}:{String(startD.getMinutes()).padStart(2, '0')} น.
+                            &nbsp;&nbsp;|&nbsp;&nbsp;
+                            ⏰ <strong>สิ้นสุด:</strong> {endD.toLocaleDateString()} {String(endD.getHours()).padStart(2, '0')}:{String(endD.getMinutes()).padStart(2, '0')} น.
+                            &nbsp;&nbsp;|&nbsp;&nbsp;
+                            ⏳ <strong>ใช้เวลา:</strong> {durationStr}
+                          </div>
+                        )}
                         {booking.notes && (
                           <div style={{
                             marginTop: '8px',
@@ -981,14 +1067,42 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div>
-                      <button
-                        onClick={() => handleCancelBooking(booking.id)}
-                        className="retro-btn retro-btn-danger"
-                        style={{ padding: '8px 16px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
-                      >
-                        ยกเลิกคิวจอง
-                      </button>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {editingBookingId === booking.id ? (
+                        <>
+                          <button
+                            onClick={() => handleUpdateBooking(booking.id)}
+                            className="retro-btn"
+                            style={{ padding: '8px 16px', fontSize: '0.85rem', whiteSpace: 'nowrap', backgroundColor: '#4CAF50', color: 'white', borderColor: '#2C1E1A' }}
+                          >
+                            💾 บันทึก
+                          </button>
+                          <button
+                            onClick={() => setEditingBookingId(null)}
+                            className="retro-btn"
+                            style={{ padding: '8px 16px', fontSize: '0.85rem', whiteSpace: 'nowrap', backgroundColor: '#8C827A', color: 'white', borderColor: '#2C1E1A' }}
+                          >
+                            ยกเลิก
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEditBooking(booking)}
+                            className="retro-btn"
+                            style={{ padding: '8px 16px', fontSize: '0.85rem', whiteSpace: 'nowrap', backgroundColor: '#3182CE', color: 'white', borderColor: '#2C1E1A' }}
+                          >
+                            ✏️ แก้ไขเวลาจริง
+                          </button>
+                          <button
+                            onClick={() => handleCancelBooking(booking.id)}
+                            className="retro-btn retro-btn-danger"
+                            style={{ padding: '8px 16px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                          >
+                            ยกเลิกคิวจอง
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
