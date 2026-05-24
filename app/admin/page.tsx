@@ -916,6 +916,15 @@ export default function AdminDashboard() {
                 const startD = new Date(booking.startTime);
                 const endD = new Date(booking.endTime);
                 
+                // คำนวณระยะเวลาจอง
+                const durationMs = endD.getTime() - startD.getTime();
+                const durationMin = Math.round(durationMs / (1000 * 60));
+                const hours = Math.floor(durationMin / 60);
+                const mins = durationMin % 60;
+                const durationStr = hours > 0 
+                  ? `${hours} ชั่วโมง${mins > 0 ? ` ${mins} นาที` : ''}`
+                  : `${durationMin} นาที`;
+                
                 return (
                   <div
                     key={booking.id}
@@ -954,6 +963,8 @@ export default function AdminDashboard() {
                           ⏰ <strong>เริ่ม:</strong> {startD.toLocaleDateString()} {String(startD.getHours()).padStart(2, '0')}:{String(startD.getMinutes()).padStart(2, '0')} น.
                           &nbsp;&nbsp;|&nbsp;&nbsp;
                           ⏰ <strong>สิ้นสุด:</strong> {endD.toLocaleDateString()} {String(endD.getHours()).padStart(2, '0')}:{String(endD.getMinutes()).padStart(2, '0')} น.
+                          &nbsp;&nbsp;|&nbsp;&nbsp;
+                          ⏳ <strong>ใช้เวลา:</strong> {durationStr}
                         </div>
                         {booking.notes && (
                           <div style={{
