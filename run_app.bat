@@ -1,6 +1,5 @@
 @echo off
-chcp 65001 > nul
-title ROOMS888 - ตัวเปิดระบบจองห้องประชุม
+title ROOMS888 - Local Server Launcher
 echo ==========================================================
 echo           ROOMS888 Booking System Launcher
 echo ==========================================================
@@ -8,68 +7,72 @@ echo.
 
 cd /d "%~dp0"
 
-:: 1. ตรวจสอบไฟล์ .env
-if not exist .env (
-    echo [INFO] ไม่พบไฟล์ .env กำลังสร้างไฟล์ค่ากำหนดใหม่...
-    copy .env.example .env > nul
-    echo [SUCCESS] สร้างไฟล์ .env สำเร็จ! (ระบบทำงานโดยใช้ SQLite ภายในเครื่อง)
-    echo [INFO] รหัสผ่านควบคุมหน้าแอดมินเริ่มต้นคือ: your_secure_admin_password
-    echo (คุณสามารถแก้ไขรหัสผ่านได้ในไฟล์ .env)
-    echo.
-)
+REM Check .env file
+if exist .env goto env_exists
+echo [INFO] .env file not found, creating new configuration...
+copy .env.example .env > nul
+echo [SUCCESS] Created .env file successfully using SQLite!
+echo [INFO] Default admin password: admin123
+echo [INFO] You can change this password in the .env file anytime.
+echo.
+:env_exists
 
-:: 2. ติดตั้ง Dependencies หากยังไม่มี
-if not exist node_modules (
-    echo [INFO] ไม่พบโฟลเดอร์ node_modules กำลังติดตั้ง dependencies...
-    echo (ขั้นตอนนี้อาจใช้เวลา 1-2 นาทีในการรันครั้งแรก)
-    call npm install
-    if %errorlevel% neq 0 (
-        echo [ERROR] ติดตั้ง dependencies ล้มเหลว!
-        pause
-        exit /b
-    )
-)
+REM Check node_modules
+if exist node_modules goto modules_exist
+echo [INFO] node_modules not found, installing dependencies...
+echo [INFO] This might take a minute or two on first run...
+call npm install
+if %errorlevel% neq 0 goto install_failed
+:modules_exist
 
-:: 3. สร้าง Prisma Client
-echo [INFO] กำลังสร้าง Prisma Client...
+REM Generate Prisma Client
+echo [INFO] Generating Prisma Client...
 call npx prisma generate
-if %errorlevel% neq 0 (
-    echo [ERROR] สร้าง Prisma Client ล้มเหลว!
-    pause
-    exit /b
-)
+if %errorlevel% neq 0 goto generate_failed
 
-:: 4. เชื่อมต่อและปรับปรุงโครงสร้างฐานข้อมูล SQLite
-echo [INFO] กำลังซิงค์โครงสร้างฐานข้อมูลในเครื่อง (SQLite)...
+REM Sync database schema
+echo [INFO] Syncing database schema...
 call npx prisma db push --accept-data-loss
-if %errorlevel% neq 0 (
-    echo [ERROR] ไม่สามารถสร้างฐานข้อมูลในเครื่องได้!
-    pause
-    exit /b
-)
+if %errorlevel% neq 0 goto push_failed
 
-:: 5. ใส่ข้อมูลห้องประชุมเริ่มต้น (Database Seed)
-echo [INFO] กำลังตรวจสอบและใส่ข้อมูลห้องตั้งต้น (Seed)...
+REM Seed database
+echo [INFO] Checking and seeding default database values...
 call npx prisma db seed
 if %errorlevel% neq 0 (
-    echo [WARNING] ไม่สามารถใส่ข้อมูลห้องเริ่มต้นได้ แต่ระบบอาจใช้งานได้ตามปกติ
+    echo [WARNING] Seeding failed, but application might still work.
 )
 
-:: 6. เริ่มต้นเซิร์ฟเวอร์ Next.js และเปิดเบราว์เซอร์
-echo [INFO] กำลังเริ่มต้นเซิร์ฟเวอร์ ROOMS888...
+REM Start Next.js server
+echo [INFO] Starting ROOMS888 server...
 start "ROOMS888 Server Process" /min cmd /c "npm run dev"
 
-echo [INFO] รอเซิร์ฟเวอร์พร้อมใช้งาน (5 วินาที)...
+echo [INFO] Waiting for server to start...
 timeout /t 5 /nobreak > nul
 
-echo [INFO] กำลังเปิดหน้าเว็บระบบจองห้องประชุม...
+echo [INFO] Opening ROOMS888 in web browser...
 start http://localhost:3000
 
 echo.
 echo ==========================================================
-echo   ระบบ ROOMS888 ทำงานแล้วที่ http://localhost:3000
-echo   - ฐานข้อมูลถูกบันทึกไว้ในเครื่องเรียบร้อย (prisma/dev.db)
-echo   - หากคุณต้องการปิดระบบ ให้ปิดหน้าต่างคอนโซลนี้ได้เลย
+echo   ROOMS888 is running at http://localhost:3000
+echo   - Local database is stored at prisma/dev.db
+echo   - You can close this console window to exit.
 echo ==========================================================
 echo.
 pause
+exit /b
+
+:install_failed
+echo [ERROR] npm install failed!
+pause
+exit /b
+
+:generate_failed
+echo [ERROR] Prisma client generation failed!
+pause
+exit /b
+
+:push_failed
+echo [ERROR] Database sync failed!
+pause
+exit /b
